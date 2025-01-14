@@ -1,0 +1,397 @@
+---
+title: "LHS 610 Final Project"
+author: "Theodora Vorias"
+date: "2024-03-24"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(scales)
+```
+
+```{r warning=FALSE}
+data <- read.csv("adult22.csv")
+```
+
+```{r}
+# SEX_A 
+# RACEALLP_A
+# ANXEV_A - Have you ever been told by a doctor or other health professional that you had any type of anxiety disorder?
+# BMICAT_A
+# SLPREST_A - During the past 30 days, how often did you wake up feeling well-rested?
+# SLPFLL_A - During the past 30 days, how often did you have trouble falling sleeping?
+# SLPSTY_A - During the past 30 days, how often did you have trouble staying asleep?
+# SLPMED_A - During the past 30 days, how often did you take any medication to help you fall asleep or stay asleep? Include both prescribed and over-the-counter medication.
+data <- data %>%
+  select(c(SEX_A, AGEP_A, RACEALLP_A, EDUCP_A, REGION, URBRRL, ANXEV_A, BMICAT_A, SLPREST_A, SLPFLL_A, SLPSTY_A, SLPMED_A))
+```
+
+
+```{r}
+data <- data %>%
+  mutate(SEX_A = ifelse(data$SEX_A == 1, "M",
+                      ifelse(data$SEX_A == 2, "F", "other"))) %>%
+  filter(SEX_A != "other")
+```
+
+```{r}
+data <- data %>%
+  mutate(RACEALLP_A = case_when(
+          RACEALLP_A == 1 ~ "White",
+          RACEALLP_A == 2 ~ "Black",
+          RACEALLP_A == 3 ~ "Asian",
+          RACEALLP_A == 4 ~ "AIAN",
+          TRUE ~ "Other"
+  )) %>%
+  filter(RACEALLP_A != "Other")
+```
+
+```{r}
+data <- data %>%
+  mutate(ANXEV_A = ifelse(data$ANXEV_A == 1, "Yes",
+                          ifelse(data$ANXEV_A == 2, "No", "other"))) %>%
+  filter(ANXEV_A != "other")
+```
+
+
+```{r}
+data <- data %>%
+  mutate(BMICAT_A = case_when(
+          BMICAT_A == 1 ~ "Underweight",
+          BMICAT_A == 2 ~ "Healthy weight",
+          BMICAT_A == 3 ~ "Overweight",
+          BMICAT_A == 4 ~ "Obese",
+          TRUE ~ "Other"
+  )) %>%
+  filter(BMICAT_A != "Other")
+```
+
+```{r}
+data <- data %>%
+  mutate(SLPREST_A = case_when(
+          SLPREST_A == 1 ~ "Never",
+          SLPREST_A == 2 ~ "Some days",
+          SLPREST_A == 3 ~ "Most days",
+          SLPREST_A == 4 ~ "Every day",
+          TRUE ~ "Other"
+  )) %>%
+  filter(SLPREST_A != "Other")
+```
+
+```{r}
+data <- data %>%
+  mutate(SLPFLL_A = case_when(
+          SLPFLL_A == 1 ~ "Never",
+          SLPFLL_A == 2 ~ "Some days",
+          SLPFLL_A == 3 ~ "Most days",
+          SLPFLL_A == 4 ~ "Every day",
+          TRUE ~ "Other"
+  )) %>%
+  filter(SLPFLL_A != "Other")
+```
+
+```{r}
+data <- data %>%
+  mutate(SLPSTY_A = case_when(
+          SLPSTY_A == 1 ~ "Never",
+          SLPSTY_A == 2 ~ "Some days",
+          SLPSTY_A == 3 ~ "Most days",
+          SLPSTY_A == 4 ~ "Every day",
+          TRUE ~ "Other"
+  )) %>%
+  filter(SLPSTY_A != "Other")
+```
+
+```{r}
+data <- data %>%
+  mutate(SLPMED_A = case_when(
+          SLPMED_A == 1 ~ "Never",
+          SLPMED_A == 2 ~ "Some days",
+          SLPMED_A == 3 ~ "Most days",
+          SLPMED_A == 4 ~ "Every day",
+          TRUE ~ "Other"
+  )) %>%
+  filter(SLPMED_A != "Other")
+```
+
+```{r}
+data <- data %>%
+  mutate(EDUCP_A = case_when(
+          EDUCP_A == 1 ~ "No high school degree",
+          EDUCP_A == 2 ~ "No high school degree",
+          EDUCP_A == 3 ~ "High School Graduate or GED",
+          EDUCP_A == 4 ~ "High School Graduate or GED",
+          EDUCP_A == 5 ~ "Some college, no degree",
+          EDUCP_A == 6 ~ "Associate degree",
+          EDUCP_A == 7 ~ "Associate degree",
+          EDUCP_A == 8 ~ "Bachelor's degree",
+          EDUCP_A == 9 ~ "Graduate degree",
+          EDUCP_A == 10 ~ "Graduate degree",
+          TRUE ~ "Other"
+  )) %>%
+  filter(EDUCP_A != "Other")
+```
+
+```{r}
+data <- data %>%
+  mutate(REGION = case_when(
+          REGION == 1 ~ "Northeast",
+          REGION == 2 ~ "Midwest",
+          REGION == 3 ~ "South",
+          REGION == 4 ~ "West",
+          TRUE ~ "Other"))
+```
+
+```{r}
+data <- data %>%
+  mutate(URBRRL = case_when(
+          URBRRL == 1 ~ "Large central metro",
+          URBRRL == 2 ~ "Large fringe metro",
+          URBRRL == 3 ~ "Medium and small metro",
+          URBRRL == 4 ~ "Nonmetropolitan",
+          TRUE ~ "Other"))
+```
+
+
+```{r}
+data$sleep_problem <- ifelse(data$SLPFLL_A != "Never" | data$SLPSTY_A != "Never", 1, 0)
+```
+
+```{r}
+data$takes_med <- ifelse(data$SLPMED_A != "Never", 1, 0)
+```
+
+```{r}
+age_groups <- c("18-29", "30-39", "40-49", "50-59", "60-69", "70+")
+
+data$age_group <- cut(data$AGEP_A, breaks = c(18, 30, 40, 50, 60, 70, Inf), labels = age_groups, right = FALSE)
+```
+
+```{r}
+data$high_quality_sleep <- ifelse(data$SLPREST_A == "Never" | data$SLPREST_A == "Some days", 0, 1)
+```
+
+## Demographics tables
+
+
+```{r}
+sex_freq <- table(data$SEX_A)
+
+sex_percent <- prop.table(sex_freq) * 100
+
+sex_table <- cbind(Frequency = sex_freq, Percentage = sex_percent)
+
+sex_table_df <- as.data.frame(sex_table)
+
+sex_table_df$Sex <- rownames(sex_table_df)
+
+sex_table_df <- sex_table_df[, c("Sex", "Frequency", "Percentage")]
+
+sex_table_df
+```
+
+
+```{r}
+age_freq <- table(data$age_group)
+
+age_percent <- prop.table(age_freq) * 100
+
+age_table <- cbind(Frequency = age_freq, Percentage = age_percent)
+
+age_table_df <- as.data.frame(age_table)
+
+age_table_df$Age <- rownames(age_table_df)
+
+age_table_df <- age_table_df[, c("Age", "Frequency", "Percentage")]
+
+age_table_df
+```
+
+```{r}
+race_freq <- table(data$RACEALLP_A)
+
+race_percent <- prop.table(race_freq) * 100
+
+race_table <- cbind(Frequency = race_freq, Percentage = race_percent)
+
+race_table_df <- as.data.frame(race_table)
+
+race_table_df$Race <- rownames(race_table_df)
+
+race_table_df <- race_table_df[, c("Race", "Frequency", "Percentage")]
+
+race_table_df
+```
+
+
+```{r}
+edu_freq <- table(data$EDUCP_A)
+
+edu_percent <- prop.table(edu_freq) * 100
+
+edu_table <- cbind(Frequency = edu_freq, Percentage = edu_percent)
+
+edu_table_df <- as.data.frame(edu_table)
+
+edu_table_df$Education <- rownames(edu_table_df)
+
+edu_table_df <- edu_table_df[, c("Education", "Frequency", "Percentage")]
+
+edu_table_df
+```
+
+```{r}
+region_freq <- table(data$REGION)
+
+region_percent <- prop.table(region_freq) * 100
+
+region_table <- cbind(Frequency = region_freq, Percentage = region_percent)
+
+region_table_df <- as.data.frame(region_table)
+
+region_table_df$Region <- rownames(region_table_df)
+
+region_table_df <- region_table_df[, c("Region", "Frequency", "Percentage")]
+
+region_table_df
+```
+
+```{r}
+urban_freq <- table(data$URBRRL)
+
+urban_percent <- prop.table(urban_freq) * 100
+
+urban_table <- cbind(Frequency = urban_freq, Percentage = urban_percent)
+
+urban_table_df <- as.data.frame(urban_table)
+
+urban_table_df$Urban <- rownames(urban_table_df)
+
+urban_table_df <- urban_table_df[, c("Urban", "Frequency", "Percentage")]
+
+urban_table_df
+```
+
+## Unstratified analysis
+
+```{r}
+data = data %>%
+  filter(sleep_problem == 1)
+```
+
+```{r}
+data$takes_med <- factor(data$takes_med)
+
+data$high_quality_sleep <- factor(data$high_quality_sleep)
+
+custom_colors <- c("high sleep quality" = "blue", "low sleep quality" = "brown2")
+
+
+plot <- data %>%
+  mutate(takes_med = if_else(takes_med == 1, "Yes", "No"),
+         high_quality_sleep = if_else(high_quality_sleep == 1, "high sleep quality",  "low sleep quality")) %>%
+  group_by(takes_med, high_quality_sleep) %>%
+  summarize(n = n()) %>%
+  mutate(proportion = n/sum(n)) %>%
+  ggplot(aes(x= takes_med, y = proportion, fill = high_quality_sleep)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = custom_colors) + 
+  geom_text(aes(label = scales::percent(proportion), y = proportion), 
+           position = position_stack(vjust = 0.5), color = "black", size = 3) +
+  labs(x = "Takes sleep medication?", y = "Percentage", fill = "Sleep Quality") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  ggtitle("Sleep Quality by Medication Usage") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave("unstratified_plot.png", plot, width = 8, height = 6, dpi = 300)
+plot
+```
+
+
+## Stratified Analysis (Confounder 1 - sex)
+```{r}
+data$takes_med <- factor(data$takes_med)
+data$high_quality_sleep <- factor(data$high_quality_sleep)
+data$SEX_A <- factor(data$SEX_A)
+
+custom_colors <- c("high sleep quality" = "blue", "low sleep quality" = "brown2") 
+
+plot <- data %>%
+  mutate(takes_med = if_else(takes_med == 1, "Yes", "No"),
+         high_quality_sleep = if_else(high_quality_sleep == 1, "high sleep quality",  "low sleep quality"),
+         SEX_A = if_else(SEX_A == "F", "Female", "Male")) %>%
+  group_by(SEX_A, takes_med, high_quality_sleep) %>%
+  summarize(n = n()) %>%
+  mutate(proportion = n/sum(n)) %>%
+  ggplot(aes(x= takes_med, y = proportion, fill = high_quality_sleep)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = scales::percent(proportion), y = proportion), 
+            position = position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_manual(values = custom_colors) + 
+  facet_wrap(~SEX_A) +
+  labs(x = "Takes sleep medication?", y = "Percentage", fill = "Sleep Quality") +
+  ggtitle("Sleep Quality by Medication Usage and Sex") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_y_continuous(labels = scales::percent_format())
+
+ggsave("confounder1_plot.png", plot, width = 8, height = 6, dpi = 300)
+plot
+```
+
+## Stratified Analysis (Confounder 2)
+
+```{r}
+data$takes_med <- factor(data$takes_med)
+data$high_quality_sleep <- factor(data$high_quality_sleep)
+data$RACEALLP_A <- factor(data$RACEALLP_A)
+
+custom_colors <- c("high sleep quality" = "blue", "low sleep quality" = "brown2") 
+
+plot <- data %>%
+  mutate(takes_med = if_else(takes_med == 1, "Yes", "No"),
+         high_quality_sleep = if_else(high_quality_sleep == 1, "high sleep quality",  "low sleep quality")) %>%
+  group_by(RACEALLP_A, takes_med, high_quality_sleep) %>%
+  summarize(n = n()) %>%
+  mutate(proportion = n/sum(n)) %>%
+  ggplot(aes(x= takes_med, y = proportion, fill = high_quality_sleep)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = scales::percent(proportion), y = proportion), 
+            position = position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_manual(values = custom_colors) + 
+  facet_wrap(~RACEALLP_A, ncol = 4) +
+  labs(x = "Takes sleep medication?", y = "Percentage", fill = "Sleep Quality") +
+  ggtitle("Sleep Quality by Medication Usage and Race/Ethnicity") +
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  scale_y_continuous(labels = scales::percent_format())
+
+ggsave("confounder2_plot.png", plot, width = 8, height = 6, dpi = 300)
+plot
+```
+
+### Chi squared test
+
+```{r}
+data$high_quality_sleep <- factor(data$high_quality_sleep, levels = c(0, 1), labels = c("No", "Yes"))
+
+data$takes_med <- factor(data$takes_med, levels = c(0, 1), labels = c("No", "Yes"))
+
+contingency_table <- table(data$high_quality_sleep, data$takes_med)
+
+chi_square_test <- chisq.test(contingency_table)
+chi_square_test
+```
+
+
+
+
+
+
+
+
+
+
+
